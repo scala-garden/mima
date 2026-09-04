@@ -1,0 +1,1 @@
+method m(java.lang.Object,java.lang.Object)java.lang.Object in class foo.C has a different generic signature in new version, where it is <B:Ljava/lang/Object;A:Ljava/lang/Object;>(TA;TB;)TA; rather than <A:Ljava/lang/Object;B:Ljava/lang/Object;>(TA;TB;)TA;. See https://github.com/scala-garden/mima#incompatiblesignatureproblem
