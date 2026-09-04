@@ -18,7 +18,7 @@ private[core] object ClassInfo {
 private[core] sealed class SyntheticClassInfo(owner: PackageInfo, val bytecodeName: String) extends ClassInfo(owner) {
   final protected def afterLoading[A](x: => A): A = x
 
-  override lazy val superClasses        = Set(ClassInfo.ObjectClass)
+  override lazy val superClassChain     = List(ClassInfo.ObjectClass)
   final override lazy val allTraits     = Set.empty[ClassInfo]
   final override lazy val allInterfaces = Set.empty[ClassInfo]
 
@@ -26,7 +26,7 @@ private[core] sealed class SyntheticClassInfo(owner: PackageInfo, val bytecodeNa
 }
 
 private[core] object NoClass extends SyntheticClassInfo(NoPackageInfo, "<noclass>") {
-  override lazy val superClasses = Set.empty[ClassInfo]
+  override lazy val superClassChain = Nil
 
   override def canEqual(other: Any) = other.isInstanceOf[NoClass.type]
 }
@@ -137,12 +137,16 @@ private[mima] sealed abstract class ClassInfo(val owner: PackageInfo) extends In
     } else NoClass
   }
 
-  lazy val superClasses: Set[ClassInfo] = {
-    if (this == ClassInfo.ObjectClass) Set.empty
-    else superClass.superClasses + superClass
+  /** Nearest superclass first, so that a lookup walking it finds an override
+   *  before the method it overrides. */
+  lazy val superClassChain: List[ClassInfo] = {
+    if (this == ClassInfo.ObjectClass) Nil
+    else superClass :: superClass.superClassChain
   }
 
-  private def thisAndSuperClasses = Iterator.single(this) ++ superClasses.iterator
+  lazy val superClasses: Set[ClassInfo] = superClassChain.toSet
+
+  private def thisAndSuperClasses = Iterator.single(this) ++ superClassChain.iterator
 
   final def lookupClassFields(field: FieldInfo): Iterator[FieldInfo] =
     thisAndSuperClasses.flatMap(_.fields.get(field.bytecodeName))
