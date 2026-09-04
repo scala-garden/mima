@@ -121,6 +121,7 @@ private[analyze] object MethodChecker {
   private def checkEmulatedConcreteMethodsProblems(oldclazz: ClassInfo, newclazz: ClassInfo): List[Problem] = {
     for {
       newmeth <- newclazz.emulatedConcreteMethods.iterator
+      if !newmeth.isScopedPrivate // nothing outside the scope can implement it
       if !oldclazz.hasStaticImpl(newmeth)
       problem <- {
         if (oldclazz.lookupMethods(newmeth).exists(_.descriptor == newmeth.descriptor)) {
@@ -141,6 +142,7 @@ private[analyze] object MethodChecker {
   private def checkDeferredMethodsProblems(oldclazz: ClassInfo, newclazz: ClassInfo, excludeAnnots: List[AnnotInfo]): List[Problem] = {
     for {
       newmeth <- newclazz.deferredMethods.iterator
+      if !newmeth.isScopedPrivate // nothing outside the scope can implement it
       if !excludeAnnots.exists(newmeth.annotations.contains)
       problem <- oldclazz.lookupMethods(newmeth).find(_.descriptor == newmeth.descriptor) match {
         case None                                                    => Some(ReversedMissingMethodProblem(newmeth))

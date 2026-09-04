@@ -1,0 +1,1 @@
+method m()Int in class foo.D does not have a correspondent in new version

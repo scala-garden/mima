@@ -12,6 +12,9 @@ sealed abstract class MemberInfo(val owner: ClassInfo, val bytecodeName: String,
   final var scopedPrivate: Boolean = false
   final var classPrivate: Boolean  = false
 
+  /** The class's pickle declares no method of this name, so the compiler generated it. */
+  final var absentFromPickle: Boolean = false
+
   def nonAccessible: Boolean
 
   final def fullName: String          = s"${owner.formattedFullName}.$decodedName"
@@ -84,8 +87,16 @@ private[mima] final class MethodInfo(owner: ClassInfo, bytecodeName: String, fla
       i -= 1
     decodedName.substring(0, i + 1).endsWith("$extension")
   }
+
+  /** A mixin forwarder scalac copies into a class drops the trait method's access:
+   *  the bytecode says public where the source says `private[p]`. */
+  private def isScopedPrivateMixinForwarder: Boolean =
+    absentFromPickle && !owner.isTrait && owner.allTraits.exists {
+      _.methods.get(bytecodeName).exists(m => m.descriptor == descriptor && m.isScopedPrivate)
+    }
   def nonAccessible: Boolean = {
     !isPublic || isScopedPrivate || isClassPrivate || isSynthetic || isClassInitializer ||
+    isScopedPrivateMixinForwarder ||
     (hasSyntheticName && !(isExtensionMethod || isDefaultGetter || isTraitInit))
   }
   def isScopedPrivate: Boolean = scopedPrivate

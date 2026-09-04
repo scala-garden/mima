@@ -186,11 +186,10 @@ object MimaUnpickler {
     }
 
     def doMethods(clazz: ClassInfo, methods: List[SymbolInfo]) = {
-      methods.iterator
-        .filter(!_.isParam)
-        .toSeq.groupBy(_.name).foreach { case (name, pickleMethods) =>
-          doMethodOverloads(clazz, name, pickleMethods)
-        }
+      val byName = methods.iterator.filter(!_.isParam).toSeq.groupBy(_.name)
+      for (m <- clazz.methods.value if !byName.contains(TermName(m.bytecodeName)))
+        m.absentFromPickle = true
+      byName.foreach { case (name, pickleMethods) => doMethodOverloads(clazz, name, pickleMethods) }
     }
 
     def doMethodOverloads(clazz: ClassInfo, name: Name, pickleMethods: Seq[SymbolInfo]) = {
