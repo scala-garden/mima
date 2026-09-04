@@ -5,6 +5,9 @@ package plugin
 import sbt.*
 
 object PluginCompat {
+  // sbt 1 has no platform setting: the Scala.js and Native plugins put it in `crossVersion`
+  private[plugin] val platformed: Def.Initialize[ModuleID => ModuleID] = Def.setting((m: ModuleID) => m)
+
   def toOldClasspath(cp: Seq[Attributed[File]]): Seq[Attributed[File]] = cp
 
   // This adds `Def.uncached(...)`

@@ -72,10 +72,12 @@ object MimaPlugin extends AutoPlugin {
     val depRes = mimaDependencyResolution.value
     val taskStreams = streams.value
     val smi = scalaModuleInfo.value
+    val platformed = PluginCompat.platformed.value
     _ match {
       case _: NoPreviousArtifacts.type => NoPreviousClassfiles
       case previousArtifacts =>
-        previousArtifacts.iterator.map { m =>
+        previousArtifacts.iterator.map { m0 =>
+          val m = platformed(m0)
           val moduleId = CrossVersion(m, smi) match {
             case Some(f) => m.withName(f(m.name)).withCrossVersion(CrossVersion.disabled)
             case None => m
