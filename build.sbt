@@ -50,7 +50,7 @@ def compilerOptions(scalaVersion: String): Seq[String] =
 // Keep in sync with TestCli
 val scala212 = "2.12.21"
 val scala213 = "2.13.18"
-val scala3_3 = "3.3.8" // keep at LTS
+val scala3_3 = "3.9.0" // keep at LTS
 val scala3_8 = "3.8.4" // keep at 3.8 for sbt 2 plugin
 
 val root = project.in(file(".")).settings(commonSettings).settings(
