@@ -1,1 +1,0 @@
-static method foo(java.lang.Object,java.lang.Object)java.lang.Object in class bar.A does not have a correspondent in new version

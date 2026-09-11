@@ -1,0 +1,4 @@
+the class stays ACC_PUBLIC in bytecode, so the app doesn't break here. The
+report is precautionary: from this version on mima can no longer see Foo at
+all (it's neither public nor reachable through a public signature), so a real
+break introduced later (e.g. removing Foo outright) would go silent.

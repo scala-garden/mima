@@ -1,0 +1,5 @@
+the ctor stays ACC_PUBLIC in bytecode so the companion's `apply`/`copy` keep
+calling it; an already-compiled caller keeps linking (on Scala 2). The report
+guards recompilation: source built against the new version can no longer call
+`new A`. On Scala 3 the app does fail, but for the unrelated, already-tracked
+reason that `apply`/`copy` themselves go bytecode-private there.

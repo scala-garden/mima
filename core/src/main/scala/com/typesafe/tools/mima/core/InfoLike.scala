@@ -9,20 +9,19 @@ private[core] abstract class InfoLike {
   protected def flags: Int
 
   /** The name as found in the original Scala source. */
-  final def decodedName: String  = NameTransformer.decode(bytecodeName)
-  final def isPublic: Boolean    = ClassfileParser.isPublic(flags)
-  final def isPrivate: Boolean   = ClassfileParser.isPrivate(flags)
-  final def isProtected: Boolean = ClassfileParser.isProtected(flags)
-  final def isStatic: Boolean    = ClassfileParser.isStatic(flags)
-  final def isFinal: Boolean     = ClassfileParser.isFinal(flags)
-  final def isBridge: Boolean    = ClassfileParser.isBridge(flags)
-  final def isDeferred: Boolean  = ClassfileParser.isDeferred(flags)
-  final def isSynthetic: Boolean = ClassfileParser.isSynthetic(flags)
-  final def nonPublic: Boolean   = !isPublic
-  final def nonFinal: Boolean    = !isFinal
-  final def isConcrete: Boolean  = !isDeferred
+  final def decodedName: String = NameTransformer.decode(bytecodeName)
 
-  final def isLessVisibleThan(that: InfoLike) = {
-    (nonPublic && that.isPublic) || (isPrivate && that.isProtected)
+  // what the bytecode says; the pickle can disagree, see ClassInfo.isScopedPrivate
+  final def isBytecodePublic: Boolean    = ClassfileParser.isPublic(flags)
+  final def isBytecodePrivate: Boolean   = ClassfileParser.isPrivate(flags)
+  final def isBytecodeProtected: Boolean = ClassfileParser.isProtected(flags)
+  final def isBytecodeStatic: Boolean    = ClassfileParser.isStatic(flags)
+  final def isBytecodeFinal: Boolean     = ClassfileParser.isFinal(flags)
+  final def isBytecodeBridge: Boolean    = ClassfileParser.isBridge(flags)
+  final def isBytecodeDeferred: Boolean  = ClassfileParser.isDeferred(flags)
+  final def isBytecodeSynthetic: Boolean = ClassfileParser.isSynthetic(flags)
+
+  final def isBytecodeLessVisibleThan(that: InfoLike) = {
+    (!isBytecodePublic && that.isBytecodePublic) || (isBytecodePrivate && that.isBytecodeProtected)
   }
 }

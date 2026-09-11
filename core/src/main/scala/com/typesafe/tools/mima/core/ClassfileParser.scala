@@ -15,8 +15,8 @@ final class ClassfileParser private (in: BufferReader, pool: ConstantPool) {
 
     clazz._superClass = parseSuperClass(clazz, flags)
     clazz._interfaces = parseInterfaces()
-    clazz._fields = parseMembers[FieldInfo](clazz)
-    clazz._methods = parseMembers[MethodInfo](clazz)
+    clazz._fields = parseMembers[FieldInfo](clazz, (_, _) => ())
+    clazz._methods = parseMembers[MethodInfo](clazz, (n, d) => clazz._privateInBytecode += ((n, paramsCount(d))))
     parseClassAttributes(clazz)
   }
 
@@ -31,14 +31,30 @@ final class ClassfileParser private (in: BufferReader, pool: ConstantPool) {
     List.fill(in.nextChar)(pool.getSuperClass(in.nextChar))
   }
 
-  private def parseMembers[A <: MemberInfo: MkMember](clazz: ClassInfo): Members[A] = {
+  private def parseMembers[A <: MemberInfo: MkMember](clazz: ClassInfo, notePrivate: (String, String) => Unit)
+      : Members[A] = {
     val members = for {
       _ <- 0.until(in.nextChar).iterator
       flags = in.nextChar
-      _ = if (isPrivate(flags)) { in.skip(4); parseAttributes(_ => ()) }
+      _ = if (isPrivate(flags)) {
+        notePrivate(pool.getName(in.nextChar), pool.getName(in.nextChar)); parseAttributes(_ => ())
+      }
       if !isPrivate(flags)
     } yield parseMember[A](clazz, flags)
     new Members(members.toList)
+  }
+
+  /** How many parameters a method descriptor names, without building any types. */
+  private def paramsCount(descriptor: String): Int = {
+    var i = 1
+    var n = 0
+    while (descriptor.charAt(i) != ')') {
+      while (descriptor.charAt(i) == '[') i += 1
+      if (descriptor.charAt(i) == 'L') i = descriptor.indexOf(';', i)
+      i += 1
+      n += 1
+    }
+    n
   }
 
   private def parseMember[A <: MemberInfo: MkMember](clazz: ClassInfo, flags: Int): A = {
@@ -68,8 +84,8 @@ final class ClassfileParser private (in: BufferReader, pool: ConstantPool) {
 
   private def parseMemberAttributes(member: MemberInfo) = {
     parseAttributes {
-      case DeprecatedATTR => member.isDeprecated = true
-      case SignatureATTR  => member.signature = Signature(pool.getName(in.nextChar))
+      case DeprecatedATTR => member._isDeprecated = true
+      case SignatureATTR  => member._signature = Signature(pool.getName(in.nextChar))
       case _              =>
     }
   }

@@ -51,22 +51,24 @@ private[core] final class ConcreteClassInfo(owner: PackageInfo, val file: AbsFil
 private[mima] sealed abstract class ClassInfo(val owner: PackageInfo) extends InfoLike with Equals {
   import ClassInfo._
 
-  final var _innerClasses: Seq[String]    = Nil
-  final var _isLocalClass: Boolean        = false
-  final var _isTopLevel: Boolean          = true
-  final var _superClass: ClassInfo        = NoClass
-  final var _interfaces: List[ClassInfo]  = Nil
-  final var _fields: Members[FieldInfo]   = NoMembers
-  final var _methods: Members[MethodInfo] = NoMembers
-  final var _flags: Int                   = 0
-  final var _signature: Signature         = Signature.none
-  final var _aliases: List[String]        = Nil
-  final var _scopedPrivate: Boolean       = false
-  final var _isScala: Boolean             = false
-  final var _sealed: Boolean              = false
-  final var _annotations: List[AnnotInfo] = Nil
-  final var _moduleClass: ClassInfo       = NoClass
-  final var _module: ClassInfo            = NoClass
+  final var _innerClasses: Seq[String]             = Nil
+  final var _isLocalClass: Boolean                 = false
+  final var _isTopLevel: Boolean                   = true
+  final var _superClass: ClassInfo                 = NoClass
+  final var _interfaces: List[ClassInfo]           = Nil
+  final var _fields: Members[FieldInfo]            = NoMembers
+  final var _methods: Members[MethodInfo]          = NoMembers
+  final var _flags: Int                            = 0
+  final var _signature: Signature                  = Signature.none
+  final var _aliases: List[String]                 = Nil
+  final var _scopedPrivate: Boolean                = false
+  final var _private: Boolean                      = false
+  final var _isScala: Boolean                      = false
+  final var _sealed: Boolean                       = false
+  final var _annotations: List[AnnotInfo]          = Nil
+  final var _privateInBytecode: Set[(String, Int)] = Set.empty
+  final var _moduleClass: ClassInfo                = NoClass
+  final var _companionClass: ClassInfo             = NoClass
 
   protected def afterLoading[A](x: => A): A
 
@@ -81,21 +83,30 @@ private[mima] sealed abstract class ClassInfo(val owner: PackageInfo) extends In
   final def flags: Int                   = afterLoading(_flags)
   final def signature: Signature         = afterLoading(_signature)
   final def aliases: List[String]        = afterLoading(_aliases)
-  // the private[foo] mark is only in the pickle, in one of the two classfiles of this class or of an enclosing object
+  // `private[p] class C`, and a nested `private class C`, are ACC_PUBLIC in bytecode
+  // so this information is read from the pickle, which can sit in a companion or enclosing classfile, so force them
   final def isScopedPrivate: Boolean     = { loadOuterChainModules(); afterLoading(_scopedPrivate) }
+  final def isPrivate: Boolean           = { loadOuterChainModules(); afterLoading(_private) }
   final def isSealed: Boolean            = afterLoading(_sealed)
   final def isScala: Boolean             = afterLoading(_isScala)
   final def annotations: List[AnnotInfo] = afterLoading(_annotations)
-  final def moduleClass: ClassInfo       = { owner.setModules; if (_moduleClass == NoClass || _moduleClass == null) this else _moduleClass }
-  final def module: ClassInfo            = { owner.setModules; if (_module == NoClass || _module == null) this else _module }
+  /** Name and parameter count of each method the bytecode keeps private. mima drops those,
+   *  so for such a pair `methods` holds fewer than the class declares. */
+  final def privateInBytecode: Set[(String, Int)] = afterLoading(_privateInBytecode)
+  /** For a plain C, the C$ holding the members of `object C`; NoClass if there is no such object. */
+  // null while NoClass itself is under construction, since these initialise to it
+  final def moduleClass: ClassInfo = { owner.linkModuleClasses; if (_moduleClass == null) NoClass else _moduleClass }
+  /** For a C$, the plain C beside it, which holds the static forwarders; NoClass if there is none. */
+  final def companionClass: ClassInfo = { owner.linkModuleClasses; if (_companionClass == null) NoClass else _companionClass }
 
-  final def isModuleClass: Boolean    = bytecodeName.endsWith("$")         // super scuffed
-  final def isInterface: Boolean      = ClassfileParser.isInterface(flags) // java interface or trait
-  final def isClass: Boolean          = !isInterface                       // class or object
-  final def scopedPrivateSuff: String = if (isScopedPrivate) "[..]" else ""
-  final def accessModifier: String    = if (isProtected) s"protected$scopedPrivateSuff" else if (isPrivate) s"private$scopedPrivateSuff" else ""
+  final def isModuleClass: Boolean      = bytecodeName.endsWith("$")         // super scuffed
+  final def isTraitOrInterface: Boolean = ClassfileParser.isInterface(flags) // java interface or trait
+  final def isClass: Boolean            = !isTraitOrInterface                // class or object
+  // a class is only ever private in the pickle: the bytecode has no bit for it
+  final def accessModifier: String =
+    if (isScopedPrivate) "private[..]" else if (isPrivate) "private" else ""
   final def declarationPrefix: String =
-    if (isModuleClass) "object" else if (!isInterface) "class" else if (isScala) "trait" else "interface"
+    if (isModuleClass) "object" else if (!isTraitOrInterface) "class" else if (isScala) "trait" else "interface"
   final lazy val fullName: String     = if (owner.isRoot) bytecodeName else s"${owner.fullName}.$bytecodeName"
   final def formattedFullName: String = formatClassName(if (isModuleClass) fullName.init else fullName)
   final def description: String       = s"$declarationPrefix $formattedFullName"
@@ -104,12 +115,19 @@ private[mima] sealed abstract class ClassInfo(val owner: PackageInfo) extends In
   private var _outerChainModulesLoaded: Boolean = this == NoClass
   @scala.annotation.tailrec
   private def loadOuterChainModules(): Unit =
-    if (!_outerChainModulesLoaded) { _outerChainModulesLoaded = true; module.forceLoad; moduleClass.forceLoad; outer.loadOuterChainModules() }
+    if (!_outerChainModulesLoaded) {
+      // the private[p] mark can come from the pickle of any of the three, whichever carries it
+      _outerChainModulesLoaded = true
+      forceLoad
+      companionClass.forceLoad
+      moduleClass.forceLoad
+      outer.loadOuterChainModules()
+    }
 
   def outerChain: Iterator[ClassInfo] = Iterator.iterate(this)(_.outer).takeWhile(_ != NoClass)
 
   /** Nothing outside this library can extend it. */
-  private[mima] def isClosed: Boolean = isFinal || isSealed || !isExternallyAccessible
+  private[mima] def isClosed: Boolean = isBytecodeFinal || isSealed || !isExternallyAccessible
 
   /** No client can extend this class, and none can extend its subtypes.
    *
@@ -119,7 +137,7 @@ private[mima] sealed abstract class ClassInfo(val owner: PackageInfo) extends In
   private[mima] def isClosedHierarchy: Boolean = isSealed &&
     owner.root.subtypes.getOrElse(this, Set.empty).forall(_.isClosed)
 
-  private[mima] def isDirectlyAccessible: Boolean = isPublic && !isScopedPrivate
+  private[mima] def isDirectlyAccessible: Boolean = isBytecodePublic && !isScopedPrivate && !isPrivate
 
   private[mima] lazy val isExternallyAccessible: Boolean = isDirectlyAccessible && (outer == NoClass || outer.isExternallyAccessible)
 
@@ -153,12 +171,12 @@ private[mima] sealed abstract class ClassInfo(val owner: PackageInfo) extends In
   final def lookupClassMethods(method: MethodInfo): Iterator[MethodInfo] = {
     val name = method.bytecodeName
     if (name == MemberInfo.ConstructorName) methods.get(name) // constructors are not inherited
-    else if (method.isStatic) methods.get(name)               // static methods are not inherited
+    else if (method.isBytecodeStatic) methods.get(name)       // static methods are not inherited
     else thisAndSuperClasses.flatMap(_.methods.get(name))
   }
 
   private def lookupInterfaceMethods(method: MethodInfo): Iterator[MethodInfo] =
-    if (method.isStatic) Iterator.empty // static methods are not inherited
+    if (method.isBytecodeStatic) Iterator.empty // static methods are not inherited
     else allInterfaces.iterator.flatMap(_.methods.get(method.bytecodeName))
 
   final def lookupMethods(method: MethodInfo): Iterator[MethodInfo] =
@@ -167,13 +185,13 @@ private[mima] sealed abstract class ClassInfo(val owner: PackageInfo) extends In
   /** The default methods a class inherits: since Java 8 an invokevirtual resolves through the
    *  superinterfaces, so these stand in for a method the class does not declare itself. */
   final def lookupConcreteInterfaceMethods(method: MethodInfo): Iterator[MethodInfo] =
-    if (method.isStatic) Iterator.empty // static interface methods are not inherited
+    if (method.isBytecodeStatic) Iterator.empty // static interface methods are not inherited
     else allInterfaces.iterator.flatMap(_.concreteMethods).filter(_.bytecodeName == method.bytecodeName)
 
   final def lookupConcreteTraitMethods(method: MethodInfo): Iterator[MethodInfo] =
     allTraits.iterator.flatMap(_.concreteMethods).filter(_.bytecodeName == method.bytecodeName)
 
-  final lazy val concreteMethods: List[MethodInfo] = methods.value.filter(_.isConcrete)
+  final lazy val concreteMethods: List[MethodInfo] = methods.value.filter(!_.isBytecodeDeferred)
 
   /** The deferred methods of this type. */
   final lazy val deferredMethods: List[MethodInfo] = {
@@ -193,7 +211,7 @@ private[mima] sealed abstract class ClassInfo(val owner: PackageInfo) extends In
       if (superClassTraits.contains(t)) Nil
       // traits with only abstract methods are presented as interfaces,
       // but nonetheless they should still be collected
-      else if (t.isInterface) parentsClosure(t) :+ t
+      else if (t.isTraitOrInterface) parentsClosure(t) :+ t
       else parentsClosure(t)
     }
 

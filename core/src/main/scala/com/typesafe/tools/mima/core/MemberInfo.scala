@@ -7,21 +7,23 @@ object MemberInfo {
 
 sealed abstract class MemberInfo(val owner: ClassInfo, val bytecodeName: String, val flags: Int, val descriptor: String)
     extends InfoLike {
-  final var isDeprecated: Boolean  = false
-  final var signature: Signature   = Signature.none // Includes generics. 'descriptor' is the erased version.
-  final var scopedPrivate: Boolean = false
-  final var classPrivate: Boolean  = false
+  final var _isDeprecated: Boolean  = false
+  final var _signature: Signature   = Signature.none // Includes generics. 'descriptor' is the erased version.
+  final var _scopedPrivate: Boolean = false
+  final var _private: Boolean       = false
 
   /** The class's pickle declares no method of this name, so the compiler generated it. */
-  final var absentFromPickle: Boolean = false
+  final var _absentFromPickle: Boolean = false
+
+  final def signature: Signature = _signature
 
   def nonAccessible: Boolean
 
   final def fullName: String          = s"${owner.formattedFullName}.$decodedName"
-  final def abstractPrefix            = if (isDeferred) "abstract " else ""
+  final def abstractPrefix            = if (isBytecodeDeferred) "abstract " else ""
   final def scopedPrivatePrefix       = "private[..] "
   final def classPrivatePrefix        = "private "
-  final def staticPrefix: String      = if (isStatic) "static " else ""
+  final def staticPrefix: String      = if (isBytecodeStatic) "static " else ""
   final def tpe: Type                 = owner.owner.definitions.fromDescriptor(descriptor)
   final def hasSyntheticName: Boolean = decodedName.contains('$')
 
@@ -30,7 +32,7 @@ sealed abstract class MemberInfo(val owner: ClassInfo, val bytecodeName: String,
     case info: MethodInfo => info.methodString
   }
 
-  private[mima] def isExternallyAccessible: Boolean = !scopedPrivate && owner.isExternallyAccessible
+  private[mima] def isExternallyAccessible: Boolean = !_scopedPrivate && owner.isExternallyAccessible
 }
 
 private[mima] final class FieldInfo(owner: ClassInfo, bytecodeName: String, flags: Int, descriptor: String)
@@ -38,8 +40,8 @@ private[mima] final class FieldInfo(owner: ClassInfo, bytecodeName: String, flag
   /** The static field dotty emits per nested object, dropped in 3.10 by scala/scala3#26937.
    *  Nothing reads it: a nested object is reached as `Foo$Bar$.MODULE$`. */
   private[mima] def isNestedObjectField: Boolean = // descriptors are dotted, not slashed
-    isStatic && owner.isModuleClass && descriptor == s"L${owner.fullName}$bytecodeName$$;"
-  def nonAccessible: Boolean = !isPublic || isSynthetic || hasSyntheticName || isNestedObjectField
+    isBytecodeStatic && owner.isModuleClass && descriptor == s"L${owner.fullName}$bytecodeName$$;"
+  def nonAccessible: Boolean = !isBytecodePublic || isBytecodeSynthetic || hasSyntheticName || isNestedObjectField
   def fieldString: String    = s"${staticPrefix}field $decodedName in ${owner.classString}"
   override def toString      = s"field $bytecodeName: $descriptor"
 }
@@ -53,11 +55,11 @@ private[mima] final class MethodInfo(owner: ClassInfo, bytecodeName: String, fla
   def shortMethodString: String = {
     val prefix = if (hasSyntheticName) if (isExtensionMethod) "extension " else "synthetic " else ""
 
-    val deprecated = if (isDeprecated) "deprecated " else ""
+    val deprecated = if (_isDeprecated) "deprecated " else ""
 
     val privatePrefix = if (isScopedPrivate) {
       scopedPrivatePrefix
-    } else if (isClassPrivate) {
+    } else if (isPrivate) {
       classPrivatePrefix
     } else {
       ""
@@ -91,17 +93,17 @@ private[mima] final class MethodInfo(owner: ClassInfo, bytecodeName: String, fla
   /** A mixin forwarder scalac copies into a class drops the trait method's access:
    *  the bytecode says public where the source says `private[p]`. */
   private def isScopedPrivateMixinForwarder: Boolean =
-    absentFromPickle && owner.allTraits.exists {
+    _absentFromPickle && owner.allTraits.exists {
       _.methods.get(bytecodeName).exists(m => m.descriptor == descriptor && m.isScopedPrivate)
     }
   def nonAccessible: Boolean = {
-    !isPublic || isScopedPrivate || isClassPrivate || isSynthetic || isClassInitializer ||
+    !isBytecodePublic || isScopedPrivate || isPrivate || isBytecodeSynthetic || isClassInitializer ||
     isScopedPrivateMixinForwarder ||
     (hasSyntheticName && !(isExtensionMethod || isDefaultGetter || isTraitInit))
   }
-  def isScopedPrivate: Boolean = scopedPrivate
+  def isScopedPrivate: Boolean = _scopedPrivate
 
-  def isClassPrivate: Boolean = classPrivate
+  def isPrivate: Boolean = _private
 
   override def toString = s"def $bytecodeName: $descriptor"
 }

@@ -1,2 +1,2 @@
 method baz(Int)Int in object foo.C does not have a correspondent in new version
-static method baz(Int)Int in class foo.C does not have a correspondent in new version
+static method baz(Int)Int in private[..] class foo.C does not have a correspondent in new version

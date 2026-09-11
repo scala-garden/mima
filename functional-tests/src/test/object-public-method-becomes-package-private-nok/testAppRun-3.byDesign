@@ -1,0 +1,2 @@
+on Scala 3 the forwarder keeps ACC_PUBLIC (see the dotty issue below), so an
+already-compiled caller keeps linking; the reports guard recompilation instead.

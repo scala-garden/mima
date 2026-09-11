@@ -5,13 +5,13 @@ import com.typesafe.tools.mima.core._
 
 private[analyze] object TemplateChecker {
   def check(oldclazz: ClassInfo, newclazz: ClassInfo): Option[Problem] = {
-    if (oldclazz.isInterface != newclazz.isInterface)
+    if (oldclazz.isTraitOrInterface != newclazz.isTraitOrInterface)
       Some(IncompatibleTemplateDefProblem(oldclazz, newclazz))
-    else if (newclazz.isLessVisibleThan(oldclazz))
+    else if (newclazz.isBytecodeLessVisibleThan(oldclazz))
       Some(InaccessibleClassProblem(newclazz))
-    else if (oldclazz.isConcrete && newclazz.isDeferred)
+    else if (!oldclazz.isBytecodeDeferred && newclazz.isBytecodeDeferred)
       Some(AbstractClassProblem(oldclazz))
-    else if (oldclazz.nonFinal && newclazz.isFinal)
+    else if (!oldclazz.isBytecodeFinal && newclazz.isBytecodeFinal)
       Some(FinalClassProblem(oldclazz))
     else if (newclazz.superClasses.contains(newclazz))
       Some(CyclicTypeReferenceProblem(newclazz))

@@ -1,0 +1,3 @@
+nothing links against C in this version, so the app doesn't break here. The
+report is precautionary: from this version on mima can no longer see C at all,
+so a real break introduced later (e.g. removing C outright) would go silent.

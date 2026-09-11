@@ -1,0 +1,5 @@
+# On Scala 3, privateWithin isn't honoured in static method emission
+# (https://github.com/lampepfl/dotty/issues/10842), so unlike Scala 2 the
+# forwarder is still emitted and isn't missing a correspondent.
+private[..] method foo(java.lang.Object,java.lang.Object)java.lang.Object in object bar.A is inaccessible in new version, it must be public.
+private[..] static method foo(java.lang.Object,java.lang.Object)java.lang.Object in class bar.A is inaccessible in new version, it must be public.

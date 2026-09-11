@@ -1,0 +1,3 @@
+the trait method stays ACC_PUBLIC in bytecode; only `privateWithin` changes, which
+the JVM doesn't enforce, so an already-compiled caller keeps linking. The report
+guards recompilation: source built against the new version can no longer call it.

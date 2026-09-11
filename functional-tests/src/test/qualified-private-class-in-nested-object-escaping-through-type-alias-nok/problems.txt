@@ -1,1 +1,1 @@
-method bar(Int)Int in class foo.Outer#Inner#Deep does not have a correspondent in new version
+method bar(Int)Int in private[..] class foo.Outer#Inner#Deep does not have a correspondent in new version

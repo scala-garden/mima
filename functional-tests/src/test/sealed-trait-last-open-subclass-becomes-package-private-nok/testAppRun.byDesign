@@ -1,0 +1,3 @@
+Impl stays ACC_PUBLIC in bytecode, so the client class compiled against v1 keeps
+running. The reports are precautionary: mima loses sight of Impl, and stops checking
+what a client that already extends T needs.

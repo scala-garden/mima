@@ -1,0 +1,3 @@
+sealed is a Scala rule, not a JVM one, so the client class compiled against v1 keeps
+running. The report is precautionary: from this version on mima stops checking what
+that client needs, so a later abstract method on T would go unreported.

@@ -16,7 +16,11 @@ private[analyze] object MethodChecker {
   private def checkNew(oldclazz: ClassInfo, newclazz: ClassInfo, excludeAnnots: List[AnnotInfo]): List[Problem] = {
     // these problems break a client that implements oldclazz, and nobody outside can
     if (oldclazz.isClosedHierarchy) return Nil
-    checkDeferredMethodsProblems(oldclazz, newclazz, excludeAnnots) :::
+    // a client that implemented oldclazz while it was open is still out there, and from here on
+    // these checks no longer run: the abstract method a later version adds would go unreported
+    val closing = if (newclazz.isClosedHierarchy) List(HierarchyBecomesClosedProblem(oldclazz)) else Nil
+    closing :::
+      checkDeferredMethodsProblems(oldclazz, newclazz, excludeAnnots) :::
       checkInheritedNewAbstractMethodProblems(oldclazz, newclazz, excludeAnnots)
   }
 
@@ -24,7 +28,7 @@ private[analyze] object MethodChecker {
     if (oldmeth.nonAccessible || excludeAnnots.exists(oldmeth.annotations.contains))
       None
     else if (newclazz.isClass) {
-      if (oldmeth.isDeferred)
+      if (oldmeth.isBytecodeDeferred)
         checkExisting1Impl(oldmeth, newclazz, _.lookupMethods(oldmeth))
       else
         checkExisting1Impl(oldmeth, newclazz, c => c.lookupClassMethods(oldmeth) ++ c.lookupConcreteInterfaceMethods(oldmeth))
@@ -49,15 +53,17 @@ private[analyze] object MethodChecker {
       oldmeth.signature.matches(newmeth.signature, newmeth.bytecodeName == MemberInfo.ConstructorName)
 
   private def checkExisting1v1(oldmeth: MethodInfo, newmeth: MethodInfo) = {
-    if (newmeth.isLessVisibleThan(oldmeth))
+    // isBytecodeLessVisibleThan reads bytecode flags, which stay public for private[p]; oldmeth
+    // is already known accessible, per the nonAccessible guard in checkExisting1
+    if (newmeth.isBytecodeLessVisibleThan(oldmeth) || newmeth.isScopedPrivate || newmeth.isPrivate)
       Some(InaccessibleMethodProblem(newmeth))
-    else if (oldmeth.nonFinal && newmeth.isFinal && oldmeth.owner.nonFinal)
+    else if (!oldmeth.isBytecodeFinal && newmeth.isBytecodeFinal && !oldmeth.owner.isBytecodeFinal)
       Some(FinalMethodProblem(newmeth))
-    else if (oldmeth.isConcrete && newmeth.isDeferred)
+    else if (!oldmeth.isBytecodeDeferred && newmeth.isBytecodeDeferred)
       Some(DirectAbstractMethodProblem(newmeth))
-    else if (oldmeth.isStatic && !newmeth.isStatic)
+    else if (oldmeth.isBytecodeStatic && !newmeth.isBytecodeStatic)
       Some(StaticVirtualMemberProblem(oldmeth))
-    else if (!oldmeth.isStatic && newmeth.isStatic)
+    else if (!oldmeth.isBytecodeStatic && newmeth.isBytecodeStatic)
       Some(VirtualStaticMemberProblem(oldmeth))
     else
       None
@@ -65,7 +71,8 @@ private[analyze] object MethodChecker {
 
   private def checkStaticMixinForwarderMethod(oldmeth: MethodInfo, newclazz: ClassInfo) = {
     if (newclazz.hasMixinForwarder(oldmeth)) {
-      None // then it's ok, the method it is still there
+      // the forwarder is still there, but the method it forwards to can have gone private[p]
+      checkExisting1Impl(oldmeth, newclazz, _.lookupMethods(oldmeth))
     } else {
       if (newclazz.allTraits.exists(_.hasMixinForwarder(oldmeth))) {
         Some(NewMixinForwarderProblem(oldmeth))
@@ -101,9 +108,9 @@ private[analyze] object MethodChecker {
       newmeth <- newclazz.deferredMethods.iterator
       if !excludeAnnots.exists(newmeth.annotations.contains)
       problem <- oldclazz.lookupMethods(newmeth).find(_.descriptor == newmeth.descriptor) match {
-        case None                                                    => Some(ReversedMissingMethodProblem(newmeth))
-        case Some(oldmeth) if newclazz.isClass && oldmeth.isConcrete => Some(ReversedAbstractMethodProblem(newmeth))
-        case Some(_)                                                 => None
+        case None                                                             => Some(ReversedMissingMethodProblem(newmeth))
+        case Some(oldmeth) if newclazz.isClass && !oldmeth.isBytecodeDeferred => Some(ReversedAbstractMethodProblem(newmeth))
+        case Some(_)                                                          => None
       }
     } yield problem
   }.toList
@@ -124,7 +131,7 @@ private[analyze] object MethodChecker {
       // checks that the newDeferredMethod did not already exist in one of the oldclazz supertypes
       if noInheritedMatchingMethod(oldclazz, newDeferredMethod)(_ => true) &&
         // checks that no concrete implementation of the newDeferredMethod is provided by one of the newclazz supertypes
-        noInheritedMatchingMethod(newclazz, newDeferredMethod)(_.isConcrete)
+        noInheritedMatchingMethod(newclazz, newDeferredMethod)(!_.isBytecodeDeferred)
     } yield {
       // report a binary incompatibility as there is a new inherited abstract method, which can lead to a AbstractErrorMethod at runtime
       val newmeth = new MethodInfo(newclazz, newDeferredMethod.bytecodeName, newDeferredMethod.flags, newDeferredMethod.descriptor)

@@ -1,0 +1,2 @@
+class foo.J is inaccessible in new version, it must be public.
+method this()Unit in class foo.J is inaccessible in new version, it must be public.

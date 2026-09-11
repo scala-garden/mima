@@ -1,0 +1,2 @@
+static method foo(java.lang.Object,java.lang.Object)java.lang.Object in class bar.A does not have a correspondent in new version
+private[..] method foo(java.lang.Object,java.lang.Object)java.lang.Object in object bar.A is inaccessible in new version, it must be public.

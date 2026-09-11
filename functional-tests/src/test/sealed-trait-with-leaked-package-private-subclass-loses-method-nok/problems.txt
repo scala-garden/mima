@@ -1,1 +1,1 @@
-method helper()Int in class foo.Open does not have a correspondent in new version
+method helper()Int in private[..] class foo.Open does not have a correspondent in new version

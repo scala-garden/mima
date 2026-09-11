@@ -1,1 +1,3 @@
 abstract method b()Int in trait foo.T is present only in new version
+trait foo.T was extensible; in new version it is sealed and all its subtypes are closed, hiding later changes that would break an existing implementation
+class foo.Open was extensible; in new version it is sealed and all its subtypes are closed, hiding later changes that would break an existing implementation

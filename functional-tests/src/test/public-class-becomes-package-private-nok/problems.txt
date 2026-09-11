@@ -1,0 +1,1 @@
+private[..] class foo.Foo is unreachable in new version, it must be public.

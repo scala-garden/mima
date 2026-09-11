@@ -1,1 +1,1 @@
-method bar(Int)Int in trait foo.Foo does not have a correspondent in new version
+method bar(Int)Int in private[..] trait foo.Foo does not have a correspondent in new version

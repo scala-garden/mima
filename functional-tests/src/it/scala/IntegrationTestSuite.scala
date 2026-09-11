@@ -186,6 +186,12 @@ class IntegrationTestSuite extends munit.FunSuite {
       //   <T:Ljava/lang/Object;>(Lscala/concurrent/Awaitable<TT;>;Lscala/concurrent/duration/Duration;)TT;^Ljava/lang/Exception;
       exclude[IncompatibleSignatureProblem]("scala.concurrent.Await.result"),
       exclude[IncompatibleSignatureProblem]("scala.concurrent.Awaitable.result"),
+
+      // Both are `sealed abstract class` in 2.12.0 and in 2.12.10, but 2.12.0 ships them with
+      // no pickle at all, only the empty `Scala` marker attribute, so mima cannot see the
+      // `sealed` there and takes the hierarchy to have closed in between.
+      exclude[HierarchyBecomesClosedProblem]("scala.runtime.Nothing$"),
+      exclude[HierarchyBecomesClosedProblem]("scala.runtime.Null$"),
     ),
   ).get)
 

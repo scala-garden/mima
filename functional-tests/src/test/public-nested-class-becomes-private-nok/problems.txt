@@ -1,0 +1,2 @@
+method use()foo.A#B in class foo.A does not have a correspondent in new version
+private class foo.A#B is unreachable in new version, it must be public.

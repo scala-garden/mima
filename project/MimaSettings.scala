@@ -39,6 +39,23 @@ object MimaSettings {
       ProblemFilters.exclude[DirectMissingMethodProblem]("com.typesafe.tools.mima.core.ClassInfo.deferredMethodsInBytecode"),
       ProblemFilters.exclude[DirectMissingMethodProblem]("com.typesafe.tools.mima.core.PackageInfo.setImplClasses"),
       ProblemFilters.exclude[DirectMissingMethodProblem]("com.typesafe.tools.mima.core.NoPackageInfo.setImplClasses"),
+
+      // the bytecode flag accessors are now isBytecodeX, and isInterface is isTraitOrInterface
+      ProblemFilters.exclude[DirectMissingMethodProblem]("com.typesafe.tools.mima.core.InfoLike.*"),
+      ProblemFilters.exclude[DirectMissingMethodProblem]("com.typesafe.tools.mima.core.ClassInfo.isInterface"),
+      ProblemFilters.exclude[DirectMissingMethodProblem]("com.typesafe.tools.mima.core.MethodInfo.isClassPrivate"),
+      ProblemFilters.exclude[DirectMissingMethodProblem]("com.typesafe.tools.mima.core.MemberInfo.classPrivate*"),
+
+      // ClassInfo.module is ClassInfo.companionClass, PackageInfo.setModules is linkModuleClasses
+      ProblemFilters.exclude[DirectMissingMethodProblem]("com.typesafe.tools.mima.core.ClassInfo._module*"),
+      ProblemFilters.exclude[DirectMissingMethodProblem]("com.typesafe.tools.mima.core.ClassInfo.module"),
+      ProblemFilters.exclude[DirectMissingMethodProblem]("com.typesafe.tools.mima.core.PackageInfo.setModules"),
+      ProblemFilters.exclude[DirectMissingMethodProblem]("com.typesafe.tools.mima.core.NoPackageInfo.setModules"),
+      ProblemFilters.exclude[DirectMissingMethodProblem]("com.typesafe.tools.mima.core.MemberInfo.isDeprecated*"),
+      ProblemFilters.exclude[DirectMissingMethodProblem]("com.typesafe.tools.mima.core.MemberInfo.scopedPrivate*"),
+      ProblemFilters.exclude[DirectMissingMethodProblem]("com.typesafe.tools.mima.core.MemberInfo.absentFromPickle*"),
+      ProblemFilters.exclude[DirectMissingMethodProblem]("com.typesafe.tools.mima.core.MemberInfo.signature_="),
+      ProblemFilters.exclude[DirectMissingMethodProblem]("com.typesafe.tools.mima.core.ClassInfo.scopedPrivateSuff"),
     ),
   )
 }

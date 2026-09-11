@@ -1,0 +1,2 @@
+method f()Int in class foo.A does not have a correspondent in new version
+method g()Int in class foo.A#Inner does not have a correspondent in new version

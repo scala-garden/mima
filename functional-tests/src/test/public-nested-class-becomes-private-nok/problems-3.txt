@@ -1,0 +1,5 @@
+# Scala 3 drops the outer pointer of a private inner class that doesn't use it, so the
+# constructor loses its parameter; Scala 2 keeps it.
+method use()foo.A#B in class foo.A does not have a correspondent in new version
+private class foo.A#B is unreachable in new version, it must be public.
+method this(foo.A)Unit in class foo.A#B does not have a correspondent in new version

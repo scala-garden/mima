@@ -37,6 +37,8 @@ sealed abstract class Problem extends ProblemRef {
     case MissingClassProblem(oldclazz)                    => s"${oldclazz.classString} does not have a correspondent in $affectedVersion version"
     case IncompatibleTemplateDefProblem(ref, newclazz)    => s"declaration of ${ref.description} is ${newclazz.description} in $affectedVersion version; changing ${ref.declarationPrefix} to ${newclazz.declarationPrefix} breaks client code"
     case InaccessibleClassProblem(ref)                    => s"${ref.classString} is inaccessible in $affectedVersion version, it must be public."
+    case ClassBecomesUnreachableProblem(_, newclazz)      => s"${newclazz.classString} is unreachable in $affectedVersion version, it must be public."
+    case HierarchyBecomesClosedProblem(ref)               => s"${ref.classString} was extensible; in $affectedVersion version it is sealed and all its subtypes are closed, hiding later changes that would break an existing implementation"
     case AbstractClassProblem(ref)                        => s"${ref.classString} was concrete; is declared abstract in $affectedVersion version"
     case FinalClassProblem(ref)                           => s"${ref.classString} is declared final in $affectedVersion version"
     case CyclicTypeReferenceProblem(ref)                  => s"the type hierarchy of ${ref.description} is different in $affectedVersion version. Type ${ref.bytecodeName} appears to be a subtype of itself"
@@ -69,6 +71,8 @@ sealed abstract class TemplateProblem(val ref: ClassInfo)                       
 final case class MissingClassProblem(oldclazz: ClassInfo)                                    extends TemplateProblem(oldclazz)
 final case class IncompatibleTemplateDefProblem(oldclazz: ClassInfo, newclazz: ClassInfo)    extends TemplateProblem(oldclazz)
 final case class InaccessibleClassProblem(newclazz: ClassInfo)                               extends TemplateProblem(newclazz)
+final case class ClassBecomesUnreachableProblem(oldclazz: ClassInfo, newclazz: ClassInfo)    extends TemplateProblem(oldclazz)
+final case class HierarchyBecomesClosedProblem(oldclazz: ClassInfo)                          extends TemplateProblem(oldclazz)
 final case class AbstractClassProblem(oldclazz: ClassInfo)                                   extends TemplateProblem(oldclazz)
 final case class FinalClassProblem(oldclazz: ClassInfo)                                      extends TemplateProblem(oldclazz)
 final case class CyclicTypeReferenceProblem(clazz: ClassInfo)                                extends TemplateProblem(clazz)

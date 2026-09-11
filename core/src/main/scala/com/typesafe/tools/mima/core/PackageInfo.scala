@@ -126,7 +126,7 @@ sealed abstract class PackageInfo {
     val found = Set.newBuilder[ClassInfo]
 
     val allAccessibleClasses = classes.valuesIterator.filter { clazz =>
-      clazz.isChecked && !clazz.isLocalClass && !clazz.isSynthetic
+      clazz.isChecked && !clazz.isLocalClass && !clazz.isBytecodeSynthetic
     }.toSet
 
     @tailrec def loop(isReachable: ClassInfo => Boolean): Set[ClassInfo] = {
@@ -142,14 +142,14 @@ sealed abstract class PackageInfo {
   }
 
   // TODO: Foo contains pickle, so if parse Foo$ before should be able to set this then
-  final lazy val setModules: Unit = {
+  final lazy val linkModuleClasses: Unit = {
     for {
-      (name, clazz) <- classes.iterator
-      if clazz.isModuleClass
-      module <- classes.get(name.init)
+      (name, moduleClass) <- classes.iterator
+      if moduleClass.isModuleClass
+      companion <- classes.get(name.init)
     } {
-      clazz._module = module
-      module._moduleClass = clazz
+      moduleClass._companionClass = companion
+      companion._moduleClass = moduleClass
     }
   }
 

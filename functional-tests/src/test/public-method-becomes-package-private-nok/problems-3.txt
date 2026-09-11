@@ -1,4 +1,0 @@
-# missing:
-#     static method foo(java.lang.Object,java.lang.Object)java.lang.Object in class bar.A does not have a correspondent in new version
-# I guess privateWithin isn't honoured in static method emission in Scala 3
-# https://github.com/lampepfl/dotty/issues/10842

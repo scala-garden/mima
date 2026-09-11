@@ -1,1 +1,2 @@
 method foo(java.lang.Object)java.lang.Object in trait bar.A does not have a correspondent in new version
+private[..] trait bar.A is unreachable in new version, it must be public.
