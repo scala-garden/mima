@@ -77,6 +77,7 @@ object TastyUnpickler {
 
     override def forEachClass(clsDef: ClsDef, cls: ClassInfo): Unit = {
       if (clsDef.flags.isSealed) cls._sealed = true
+      if (clsDef.flags.isPrivate) cls._classPrivate = true
       if (clsDef.privateWithin.isDefined) {
         cls._scopedPrivate = true
         if (cls.isModuleClass && !pickledClasses(cls.module)) cls.module._scopedPrivate = true

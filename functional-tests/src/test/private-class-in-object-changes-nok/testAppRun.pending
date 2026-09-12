@@ -1,1 +1,0 @@
-# mima reports Impl.bar, though Impl is private to Lib and no client can call it

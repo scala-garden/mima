@@ -1,1 +1,0 @@
-method bar(Int)Int in class foo.Lib#Impl does not have a correspondent in new version

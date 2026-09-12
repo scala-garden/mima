@@ -222,6 +222,7 @@ object MimaUnpickler {
       val cls = classes(clsSym)
       if (cls != NoClass) {
         if (clsSym.isSealed) cls._sealed = true
+        if (clsSym.isClassPrivate) cls._classPrivate = true
         if (clsSym.isScopedPrivate) {
           cls._scopedPrivate = true
           if (clsSym.isModuleOrModuleClass && !pickledClasses(cls.module)) cls.module._scopedPrivate = true
