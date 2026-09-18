@@ -1,1 +1,2 @@
+// a block pasted from a report carries its comments with //
 ProblemFilters.exclude[MissingMethodProblem]("A.foz()Int")

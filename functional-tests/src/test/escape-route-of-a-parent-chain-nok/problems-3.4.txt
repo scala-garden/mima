@@ -1,0 +1,2 @@
+method bar(Int)Int in object foo.Lib's type is different in new version, where it is (Long)Int instead of (Int)Int
+method bar(Int)Int in private[..] trait foo.I1 does not have a correspondent in new version (foo.I1 escapes as a parent of trait foo.I2, trait foo.I3, object foo.Lib)

@@ -99,6 +99,10 @@ object SbtMima {
     }
   }
 
+  /** `#` is the comment of a filters file, `//` the one of a build, and a block copied from a
+   *  report is pasted into either. */
+  private def isComment(line: String) = { val t = line.trim; t.startsWith("#") || t.startsWith("//") }
+
   /** The `binary-api` file of a project, if it has one: the definitions it keeps checking. */
   def binaryApiFromFile(filtersDirectory: File, s: TaskStreams): Seq[BinaryApiEntry] = {
     val file = filtersDirectory / "binary-api"
@@ -108,7 +112,7 @@ object SbtMima {
       val failures = new ListBuffer[String]
       val source = Source.fromFile(file)
       try
-        for ((rawText, line) <- source.getLines().zipWithIndex if !rawText.startsWith("#") && rawText.trim.nonEmpty)
+        for ((rawText, line) <- source.getLines().zipWithIndex if !isComment(rawText) && rawText.trim.nonEmpty)
           try entries += BinaryApi.parse(rawText)
           catch { case NonFatal(t) => failures += s"Error while parsing $file, line $line: ${t.getMessage}" }
       catch { case NonFatal(t) => failures += s"Couldn't load '$file': ${t.getMessage}" }
@@ -155,7 +159,7 @@ object SbtMima {
       try {
         for {
           (rawText, line) <- source.getLines().zipWithIndex
-          if !rawText.startsWith("#")
+          if !isComment(rawText)
           // the report prints filters comma-separated, ready to paste into a Seq or into a file
           text = rawText.trim.stripSuffix(",")
           if text != ""

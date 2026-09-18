@@ -3,6 +3,11 @@ package com.typesafe.tools.mima.core
 import scala.annotation.{ nowarn, tailrec }
 import scala.collection.mutable
 
+/** A way out of the library for a class no client can name: `via` exposes it, `relation` says how,
+ *  and `label` names what to print. `via` itself may only be reachable through another one.
+ */
+private[mima] final case class EscapeRoute(relation: String, label: String, via: ClassInfo)
+
 sealed class SyntheticPackageInfo(val owner: PackageInfo, val name: String) extends PackageInfo {
   def definitions   = owner.definitions
   lazy val packages = mutable.Map.empty[String, PackageInfo]
@@ -102,15 +107,15 @@ sealed abstract class PackageInfo {
 
   /** The classes no client can name but every client can reach, each with the way out it takes:
    *  a public signature, a parent, an alias, or an outer class a client can name. */
-  final lazy val escapeRoutes: collection.Map[ClassInfo, String] = {
+  final lazy val escapeRoutes: collection.Map[ClassInfo, EscapeRoute] = {
     // Signatures resolve against the full classpath. Map them back to the compared artifact
     // before asking about accessibility, which loads the classfile and its Scala metadata.
     val targetClasses = classesInTree.toList
     val targetByName  = targetClasses.iterator.map(c => c.fullName -> c).toMap
-    val escaped       = mutable.Map.empty[ClassInfo, String]
+    val escaped       = mutable.Map.empty[ClassInfo, EscapeRoute]
     val queue         = mutable.Queue.empty[ClassInfo]
 
-    def enqueue(clazz: ClassInfo, route: => String): Unit = if (clazz != NoClass) {
+    def enqueue(clazz: ClassInfo, route: => EscapeRoute): Unit = if (clazz != NoClass) {
       targetByName.get(clazz.fullName).foreach { target =>
         if (!target.isExternallyAccessible && !escaped.contains(target)) {
           escaped(target) = route
@@ -118,27 +123,30 @@ sealed abstract class PackageInfo {
         }
       }
     }
-    def enqueueAll(classes: Iterator[ClassInfo], route: => String): Unit =
+    def enqueueAll(classes: Iterator[ClassInfo], route: => EscapeRoute): Unit =
       classes.foreach(enqueue(_, route))
 
     def exposes(clazz: ClassInfo): Unit = {
       (clazz.methods.value.iterator ++ clazz.fields.value.iterator).foreach { m =>
         if (!m.nonAccessible) {
-          enqueueAll(m.tpe.classes, s"through ${m.fullName}")
-          enqueueAll(m.signature.classNames.map(clazz.owner.definitions.fromName), s"through ${m.fullName}")
+          enqueueAll(m.tpe.classes, EscapeRoute("through", m.fullName, clazz))
+          enqueueAll(
+            m.signature.classNames.map(clazz.owner.definitions.fromName),
+            EscapeRoute("through", m.fullName, clazz))
         }
       }
+      // parents first: a parent with type arguments is in the signature too, and reads better as one
+      enqueue(clazz.superClass, EscapeRoute("as a parent of", clazz.description, clazz))
+      enqueueAll(clazz.interfaces.iterator, EscapeRoute("as a parent of", clazz.description, clazz))
       enqueueAll(
         clazz.signature.classNames.map(clazz.owner.definitions.fromName),
-        s"through the signature of ${clazz.description}")
+        EscapeRoute("through the signature of", clazz.description, clazz))
       enqueueAll(
         clazz.aliases.iterator.map(clazz.owner.definitions.fromAliasName),
-        s"as an alias in ${clazz.description}")
-      enqueue(clazz.superClass, s"as a parent of ${clazz.description}")
-      enqueueAll(clazz.interfaces.iterator, s"as a parent of ${clazz.description}")
+        EscapeRoute("as an alias in", clazz.description, clazz))
       // a client reaches a nested class through its outer only if it can name the nested one
       clazz.innerClasses.foreach(clazz.owner.classes.get(_).filter(_.isDirectlyAccessible)
-        .foreach(enqueue(_, s"as a nested class of ${clazz.description}")))
+        .foreach(enqueue(_, EscapeRoute("as a nested class of", clazz.description, clazz))))
     }
 
     targetClasses.foreach { c => if (c.isExternallyAccessible) exposes(c) }

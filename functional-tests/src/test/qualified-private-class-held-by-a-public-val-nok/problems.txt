@@ -1,1 +1,1 @@
-method bar(Int)Int in private[..] class foo.C does not have a correspondent in new version (foo.C escapes through foo.C.mk)
+method bar(Int)Int in private[..] class foo.C does not have a correspondent in new version (foo.C escapes through foo.C.mk, foo.Lib.K)

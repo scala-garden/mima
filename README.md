@@ -174,7 +174,7 @@ Leaving the signature out covers every overload of `bar`.
 ### Filter files
 
 Filters can live in `src/main/mima-filters` instead of the build, one `exclude` per line,
-`#` for comments. A file is named after the release its filters are for:
+`#` or `//` for comments. A file is named after the release its filters are for:
 `1.1.0.backwards.excludes` applies while `mimaPreviousArtifacts` names 1.1.0 or anything
 before it, and is ignored once it moves past. `forwards` and `both` name the other
 directions, and `1.1.x` stands for every patch release of 1.1.
@@ -332,7 +332,7 @@ The `keep` entry names the kind of problem MiMa continues checking:
 
 Names work as in filters, and `*` stands for any part of a name. An object has two classes,
 `O` and `O$`, so keeping it takes two entries; keeping a method of an object takes one. Entries
-can also go in `src/main/mima-filters/binary-api`, one per line, `#` for comments.
+can also go in `src/main/mima-filters/binary-api`, one per line, `#` or `//` for comments.
 
 A method entry includes the signature, so it keeps one method. Without it, the entry keeps every
 overload of that name, including any that was never part of the API, and removing one of those is

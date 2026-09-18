@@ -1,0 +1,2 @@
+# 3.3 emits no mixin forwarder, and lists every mixed-in trait in the classfile, so the chain is one step
+method bar(Int)Int in private[..] trait foo.I1 does not have a correspondent in new version (foo.I1 escapes as a parent of object foo.Lib)

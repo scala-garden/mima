@@ -1,0 +1,3 @@
+# the parent is in the class signature too, and the report names it as a parent
+method bar(Int)Int in class foo.Pub's type is different in new version, where it is (Long)Int instead of (Int)Int
+method bar(Int)Int in private[..] trait foo.Base does not have a correspondent in new version (foo.Base escapes as a parent of class foo.Pub)

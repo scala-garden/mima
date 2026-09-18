@@ -71,7 +71,7 @@ object CollectProblemsTest {
     if (!file.exists) Nil
     else
       Files.lines(file.toPath).iterator.asScala
-        .map(_.trim).filter(l => l.nonEmpty && !l.startsWith("#")).map(BinaryApi.parse).toList
+        .map(_.trim).filter(l => l.nonEmpty && !l.startsWith("#") && !l.startsWith("//")).map(BinaryApi.parse).toList
 
   def readOracleFile(oracleFile: File): List[String] = {
     Files.lines(oracleFile.toPath).iterator.asScala.filter(!_.startsWith("#")).toList

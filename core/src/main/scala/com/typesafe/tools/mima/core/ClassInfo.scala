@@ -169,8 +169,27 @@ private[mima] sealed abstract class ClassInfo(val owner: PackageInfo) extends In
 
   /** Whether mima checks this class: a client outside the scope can name it, or holds
    *  one all the same because a public method returns it. */
-  /** The way out a client takes to reach this class, for one no client can name. */
-  private[mima] def escapeRoute: Option[String] = owner.root.escapeRoutes.get(this)
+  /** The way out a client takes to reach this class, for one no client can name: each step of the
+   *  chain from here to a definition a client can name, steps sharing a relation folded into one,
+   *  e.g. "as a parent of class foo.B, class foo.A, through foo.Lib.go".
+   */
+  private[mima] def escapeRoute: Option[String] = {
+    val routes                                                           = owner.root.escapeRoutes
+    def chain(clazz: ClassInfo, seen: Set[ClassInfo]): List[EscapeRoute] = routes.get(clazz) match {
+      case Some(route) if !seen(clazz) => route :: chain(route.via, seen + clazz)
+      case _                           => Nil
+    }
+    val steps = chain(this, Set.empty)
+    if (steps.isEmpty) None
+    else {
+      val folded = steps.foldLeft(List.empty[(String, List[String])]) {
+        case ((relation, labels) :: rest, route) if relation == route.relation =>
+          (relation, labels :+ route.label) :: rest
+        case (acc, route) => (route.relation, List(route.label)) :: acc
+      }
+      Some(folded.reverse.map { case (relation, labels) => s"$relation ${labels.mkString(", ")}" }.mkString(", "))
+    }
+  }
 
   private[mima] def isChecked: Boolean =
     isExternallyAccessible || owner.root.escapedClasses(this) || (isDirectlyAccessible && outer != NoClass && outer.isChecked)

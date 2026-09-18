@@ -1,0 +1,2 @@
+# 3.3 emits no mixin forwarder, so only the trait method is reported
+method bar(Int)Int in private[..] trait foo.Base does not have a correspondent in new version (foo.Base escapes as a parent of class foo.Pub)

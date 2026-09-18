@@ -1,2 +1,3 @@
 # bar was public before 0.0.1, so mima keeps checking it
+   // a block pasted from a report carries its comments with //
 BinaryApi.keep[MethodNoLongerCheckedProblem]("foo.A.bar"),

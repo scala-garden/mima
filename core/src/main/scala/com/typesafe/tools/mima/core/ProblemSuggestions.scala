@@ -42,7 +42,8 @@ private[mima] object ProblemSuggestions {
   private def withNotes(suggestions: Seq[(Problem, String)]): Seq[String] = {
     val lines = suggestions.map { case (p, line) => p.escapeNote -> s"   $line," }.distinct
     lines.foldLeft((Option.empty[String], Vector.empty[String])) { case ((last, acc), (note, line)) =>
-      val comment = if (note == last) Nil else note.map("   # " + _).toList
+      // `//`, so that the block can be pasted into a build as well as into a filters file
+      val comment = if (note == last) Nil else note.map("   // " + _).toList
       (note, acc ++ comment :+ line)
     }._2
   }
