@@ -18,8 +18,8 @@ change can still stop client code from compiling.
 
 ### Scala clients, not Java clients
 
-MiMa checks your API as Scala code sees it. Some changes break only Java clients, and
-MiMa does not report them:
+MiMa checks your binary API as Scala code sees it. Some changes break only Java clients,
+and MiMa does not report them:
 
 - `private[foo]` definitions and nested `private` classes are public in bytecode. Java
   code can use them, MiMa ignores them. See
