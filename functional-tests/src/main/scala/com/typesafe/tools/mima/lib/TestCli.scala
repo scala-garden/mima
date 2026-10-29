@@ -12,7 +12,7 @@ object TestCli {
   // Keep in sync with build.sbt
   val scala212 = "2.12.21"
   val scala213 = "2.13.18"
-  val scala3_3 = "3.3.8" // keep at LTS
+  val scala3_3 = "3.3.9" // keep at LTS
   val scala3_9 = "3.9.0"
   val scala3_10 = "3.10.0-RC1" // bump to the release when it is out
   val hostScalaVersion = StdLibProps.scalaPropOrNone("maven.version.number").get
