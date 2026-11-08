@@ -10,7 +10,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { java: 8 }
+          - { java: 11 }
           - { java: 17, sbt2: -Dmima.sbt2 } # publishes the sbt 2 plugin, and nothing else
     runs-on: ubuntu-latest
     steps:
