@@ -22,7 +22,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { java: 8 }
+          - { java: 11 }
           - { java: 17, sbt2: -Dmima.sbt2 } # the sbt 2 plugin, which needs Scala 3.8
     runs-on: ubuntu-latest
     steps:
@@ -41,7 +41,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { java: 8 }
+          - { java: 11 }
           - { java: 17, sbt2: -Dmima.sbt2 } # the sbt 2 plugin, which needs Scala 3.8
     runs-on: ubuntu-latest
     steps:
@@ -63,7 +63,7 @@ jobs:
         include:
           - { scala: "2.12", java: 8 }
           - { scala: "2.13", java: 8 }
-          - { scala: "3.3", java: 8 }
+          - { scala: "3.3", java: 11 }
           - { scala: "3.9", java: 17 }
           - { scala: "3.10", java: 17 }
     runs-on: ubuntu-latest

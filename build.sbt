@@ -18,7 +18,7 @@ lazy val commonSettings: Seq[Setting[_]] = Seq(
   scalaVersion := crossScalaVersions.value.headOption.getOrElse((LocalProject("sbtplugin") / scalaVersion).value),
   publish / skip := crossScalaVersions.value.isEmpty,
   publishLocal / skip := false, // sbtplugin/scripted requires publishLocal
-  scalacOptions ++= compilerOptions(scalaVersion.value),
+  scalacOptions ++= compilerOptions.value,
 )
 
 // The sbt 2 plugin needs Scala 3.8 and JDK 17; the rest of the build targets Java 8. `-Dmima.sbt2`
@@ -37,13 +37,15 @@ addCommandAlias(
   "scriptedOldest",
   s"""set sbtplugin/scriptedSbt := "$sbtOldest"; show sbtplugin/scriptedSbt; sbtplugin/scripted sbt-mima-plugin/minimal""")
 
-def compilerOptions(scalaVersion: String): Seq[String] =
+def compilerOptions: Def.Initialize[Seq[String]] = Def.setting {
+  val scalaVersion = Keys.scalaVersion.value
   Seq(
     "-feature",
     "-Wconf:cat=deprecation&msg=Stream|JavaConverters:s",
   ) ++
     (CrossVersion.partialVersion(scalaVersion) match {
       case Some((2, _)) => Seq(
+          "-release:8",
           "-Xlint",
           // these are too annoying when crossbuilding
           "-Wconf:cat=unused-nowarn:s",
@@ -54,8 +56,11 @@ def compilerOptions(scalaVersion: String): Seq[String] =
       case Some((2, 12)) => Seq("-Xsource:3")
       case Some((2, 13)) => Seq("-Xsource:3-cross")
 
+      case Some((3, 3)) if !crossProjectPlatform.?.value.contains(NativePlatform) =>
+        Seq("-release:11", "-Yfuture-lazy-vals")
       case _ => Seq()
     })
+}
 
 // Keep in sync with TestCli
 val scala212 = "2.12.21"
